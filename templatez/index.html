@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Timer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <style>
+        body { background-color: #FFC0CB; font-family: 'Press Start 2P', cursive; color: #333; text-align: center; }
+        h1, h2 { text-shadow: 2px 2px 0px #fff, 4px 4px 0px #ff69b4; }
+        button { background: linear-gradient(135deg, #ff758c, #ff7eb3); padding: 10px 20px; cursor: pointer; }
+        table { margin: auto; border-collapse: collapse; width: 50%; background: #fff; border-radius: 10px; }
+        th, td { padding: 10px; border: 2px solid #ff69b4; }
+        th { background: #ff69b4; color: white; }
+
+        /* Tab styless */
+        .tab-container { margin: 20px 0; }
+        .tab-button {
+            padding: 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #ff69b4;
+            color: white;
+            margin: 5px;
+        }
+        .tab-button.active { background-color: #ff1493; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <!-- Tab Buttons -->
+    <div class="tab-container">
+        <button class="tab-button active" onclick="switchTab('contest')">🥄 Silverware Contest</button>
+        <button class="tab-button" onclick="switchTab('earnings')">💰 Earnings & Goals</button>
+    </div>
+
+    <!-- 🥄 Silverware Rolling Contest -->
+    <div id="contest" class="tab-content active">
+        <h1>Silverware Rolling Contest</h1>
+        <div id="timer">0.00s</div>
+        <input type="text" id="name" placeholder="Enter your name">
+        <button onclick="startTimer()">Start</button>
+        <button onclick="stopTimer()">Stop</button>
+
+        <h2>Leaderboard</h2>
+        <table>
+            <thead><tr><th>Rank</th><th>Name</th><th>Time (s)</th></tr></thead>
+            <tbody id="leaderboard"></tbody>
+        </table>
+    </div>
+
+    <!-- 💰 Earnings & Goal Tracker -->
+    <div id="earnings" class="tab-content">
+        <h2>Enter Your Code to View Earnings & Goal</h2>
+        <input type="password" id="user-code-view" placeholder="Enter Your Private Code">
+        <button onclick="loadEarningsAndGoal()">Show My Info</button>
+
+        <h3>Total Earnings: <span id="total-earnings">Hidden</span></h3>
+        <h3>Goal: <span id="goal-display">Hidden</span></h3>
+        <h3>Progress: <span id="progress-percent">Hidden</span>%</h3>
+
+        <h2>Earnings History</h2>
+        <table>
+            <thead><tr><th>Name</th><th>Amount ($)</th><th>Date</th></tr></thead>
+            <tbody id="earnings-history"></tbody>
+        </table>
+
+        <h2>Log Your Earnings</h2>
+        <input type="text" id="earnings-name" placeholder="Your Name">
+        <input type="number" id="earnings-amount" placeholder="Earnings ($)">
+        <input type="password" id="user-code-log" placeholder="Enter Your Private Code">
+        <button onclick="logEarnings()">Log Earnings</button>
+
+        <h2>Update Your Goal</h2>
+        <input type="number" id="new-goal-amount" placeholder="Set New Goal ($)">
+        <input type="password" id="goal-update-user-code" placeholder="Enter Your Private Code">
+        <button onclick="setGoal()">Update Goal</button>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
+        }
+
+        function loadLeaderboard() {
+            fetch("/leaderboard").then(response => response.json()).then(data => {
+                document.getElementById("leaderboard").innerHTML = data.map(row => 
+                    `<tr><td>${row.rank}</td><td>${row.name}</td><td>${row.time}s</td></tr>`).join("");
+            });
+        }
+
+        function loadEarningsAndGoal() {
+            let userCode = document.getElementById("user-code-view").value.trim();
+            if (!userCode) {
+                alert("Enter your private code to see your earnings and goal.");
+                return;
+            }
+
+            fetch("/earnings_history", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_code: userCode })
+            }).then(response => response.json()).then(data => {
+                document.getElementById("earnings-history").innerHTML = data.map(row => 
+                    `<tr><td>${row[0]}</td><td>$${parseFloat(row[1]).toFixed(2)}</td><td>${row[2]}</td></tr>`).join("");
+            });
+
+            fetch("/goal_progress", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_code: userCode })
+            }).then(response => response.json()).then(data => {
+                document.getElementById("total-earnings").innerText = "$" + data.total_earnings.toFixed(2);
+                document.getElementById("goal-display").innerText = "$" + data.goal_amount.toFixed(2);
+                document.getElementById("progress-percent").innerText = data.progress.toFixed(1) + "%";
+            });
+        }
+
+        function logEarnings() {
+            let name = document.getElementById("earnings-name").value.trim();
+            let amount = document.getElementById("earnings-amount").value.trim();
+            let userCode = document.getElementById("user-code-log").value.trim();
+
+            if (!name || isNaN(amount) || amount <= 0 || !userCode) {
+                alert("Enter a valid name, earnings amount, and private code.");
+                return;
+            }
+
+            fetch("/log_earnings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, amount: parseFloat(amount), user_code: userCode })
+            }).then(response => response.json()).then(data => {
+                alert(data.message);
+                loadEarningsAndGoal();
+            });
+        }
+
+        function setGoal() {
+            let goalAmount = document.getElementById("new-goal-amount").value.trim();
+            let userCode = document.getElementById("goal-update-user-code").value.trim();
+
+            if (!goalAmount || isNaN(goalAmount) || goalAmount <= 0 || !userCode) {
+                alert("Enter a valid goal amount and private code.");
+                return;
+            }
+
+            fetch("/set_goal", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ goal_amount: parseFloat(goalAmount), user_code: userCode })
+            }).then(response => response.json()).then(data => {
+                alert(data.message);
+                loadEarningsAndGoal();
+            });
+        }
+
+        loadLeaderboard();
+    </script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
