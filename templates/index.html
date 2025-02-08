@@ -14,15 +14,7 @@
         th, td { padding: 10px; border: 2px solid #ff69b4; }
         th { background: #ff69b4; color: white; }
         .tab-container { margin: 20px 0; }
-        .tab-button {
-            padding: 15px;
-            font-size: 16px;
-            cursor: pointer;
-            border: none;
-            background-color: #ff69b4;
-            color: white;
-            margin: 5px;
-        }
+        .tab-button { padding: 15px; font-size: 16px; cursor: pointer; border: none; background-color: #ff69b4; color: white; margin: 5px; }
         .tab-button.active { background-color: #ff1493; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -30,14 +22,12 @@
 </head>
 <body>
 
-    <!-- Tab Buttons -->
     <div class="tab-container">
         <button class="tab-button active" onclick="switchTab('contest')">🥄 Silverware Contest</button>
         <button class="tab-button" onclick="switchTab('earnings')">💰 Earnings & Goals</button>
         <button class="tab-button" onclick="switchTab('info')">ℹ️ Disclaimers & Info</button>
     </div>
 
-    <!-- 🥄 Silverware Rolling Contest -->
     <div id="contest" class="tab-content active">
         <h1>Silverware Rolling Contest</h1>
         <div id="timer">0.00s</div>
@@ -52,7 +42,6 @@
         </table>
     </div>
 
-    <!-- 💰 Earnings & Goal Tracker -->
     <div id="earnings" class="tab-content">
         <h2>Enter Your Code to View Earnings & Goal</h2>
         <input type="password" id="user-code-view" placeholder="Enter Your Private Code">
@@ -80,7 +69,6 @@
         <button onclick="setGoal()">Update Goal</button>
     </div>
 
-    <!-- ℹ️ Disclaimers & Info -->
     <div id="info" class="tab-content">
         <h1>Disclaimers & Info</h1>
         <p>This web app was designed by <b>Saye Traore</b> for my co-workers.</p>
@@ -91,10 +79,8 @@
             <li>Even if someone accessed the database, they <b>could not decrypt your code</b> without the secret key.</li>
             <li>The encryption key is <b>not stored in the database</b>, making it impossible for anyone, including the admin, to see your private data.</li>
         </ul>
-        <p>Originally designed for my co-workers, but open for anyone who finds it useful.</p>
         <p>🔗 <b>View the source code and security implementation on GitHub:</b>  
         <a href="https://github.com/sayetraore/silverwareGoals.git" target="_blank">GitHub Repository</a></p>
-        <p>📧 For inquiries or issues, email me at <b>sayetraore40@gmail.com</b></p>
     </div>
 
     <script>
@@ -102,19 +88,15 @@
         let startTime;
 
         function startTimer() {
-            startTime = Date.now(); // Start the timer
+            startTime = Date.now();
             timer = setInterval(() => {
-                const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
-                document.getElementById("timer").innerText = elapsedTime + "s";
+                document.getElementById("timer").innerText = ((Date.now() - startTime) / 1000).toFixed(2) + "s";
             }, 100);
         }
 
         function stopTimer() {
-            clearInterval(timer); // Stop the timer
-            const finalTime = ((Date.now() - startTime) / 1000).toFixed(2);
-            document.getElementById("timer").innerText = finalTime + "s (Stopped)";
-
-            // Submit time to backend
+            clearInterval(timer);
+            document.getElementById("timer").innerText += " (Stopped)";
             const playerName = document.getElementById("name").value.trim();
             if (playerName === "") {
                 alert("Enter your name before stopping the timer!");
@@ -124,7 +106,7 @@
             fetch("/submit_time", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: playerName, time_taken: finalTime })
+                body: JSON.stringify({ name: playerName, time_taken: ((Date.now() - startTime) / 1000).toFixed(2) })
             }).then(response => response.json()).then(data => {
                 alert("Time submitted!");
                 loadLeaderboard();
@@ -138,8 +120,16 @@
             });
         }
 
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
+        }
+
         loadLeaderboard();
     </script>
 
 </body>
 </html>
+
