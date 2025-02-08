@@ -1,15 +1,14 @@
-<!DOCTYPE html>
+<!DOC<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Timer</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-
     <style>
         body { background-color: #FFC0CB; font-family: 'Press Start 2P', cursive; color: #333; text-align: center; }
         h1, h2 { text-shadow: 2px 2px 0px #fff, 4px 4px 0px #ff69b4; }
-        button { background: linear-gradient(135deg, #ff758c, #ff7eb3); padding: 10px 20px; cursor: pointer; }
+        button { background: linear-gradient(135deg, #ff758c, #ff7eb3); padding: 10px 20px; cursor: pointer; border: none; }
         table { margin: auto; border-collapse: collapse; width: 50%; background: #fff; border-radius: 10px; }
         th, td { padding: 10px; border: 2px solid #ff69b4; }
         th { background: #ff69b4; color: white; }
@@ -23,17 +22,17 @@
 <body>
 
     <div class="tab-container">
-        <button class="tab-button active" onclick="switchTab('contest')">🥄 Silverware Contest</button>
-        <button class="tab-button" onclick="switchTab('earnings')">💰 Earnings & Goals</button>
-        <button class="tab-button" onclick="switchTab('info')">ℹ️ Disclaimers & Info</button>
+        <button class="tab-button active" data-tab="contest">🥄 Silverware Contest</button>
+        <button class="tab-button" data-tab="earnings">💰 Earnings & Goals</button>
+        <button class="tab-button" data-tab="info">ℹ️ Disclaimers & Info</button>
     </div>
 
     <div id="contest" class="tab-content active">
         <h1>Silverware Rolling Contest</h1>
         <div id="timer">0.00s</div>
         <input type="text" id="name" placeholder="Enter your name">
-        <button onclick="startTimer()">Start</button>
-        <button onclick="stopTimer()">Stop</button>
+        <button id="start-btn">Start</button>
+        <button id="stop-btn">Stop</button>
 
         <h2>Leaderboard</h2>
         <table>
@@ -45,7 +44,7 @@
     <div id="earnings" class="tab-content">
         <h2>Enter Your Code to View Earnings & Goal</h2>
         <input type="password" id="user-code-view" placeholder="Enter Your Private Code">
-        <button onclick="loadEarningsAndGoal()">Show My Info</button>
+        <button id="show-info-btn">Show My Info</button>
 
         <h3>Total Earnings: <span id="total-earnings">Hidden</span></h3>
         <h3>Goal: <span id="goal-display">Hidden</span></h3>
@@ -61,12 +60,12 @@
         <input type="text" id="earnings-name" placeholder="Your Name">
         <input type="number" id="earnings-amount" placeholder="Earnings ($)">
         <input type="password" id="user-code-log" placeholder="Enter Your Private Code">
-        <button onclick="logEarnings()">Log Earnings</button>
+        <button id="log-earnings-btn">Log Earnings</button>
 
         <h2>Update Your Goal</h2>
         <input type="number" id="new-goal-amount" placeholder="Set New Goal ($)">
         <input type="password" id="goal-update-user-code" placeholder="Enter Your Private Code">
-        <button onclick="setGoal()">Update Goal</button>
+        <button id="set-goal-btn">Update Goal</button>
     </div>
 
     <div id="info" class="tab-content">
@@ -84,63 +83,88 @@
         <a href="https://github.com/sayetraore/silverwareGoals.git" target="_blank">GitHub Repository</a></p>
         <p>📧 For inquiries or issues, email me at <b>sayetraore40@gmail.com</b></p>
     </div>
+    
 
     <script>
-        function loadEarningsAndGoal() {
-            let userCode = document.getElementById("user-code-view").value.trim();
-            if (!userCode) {
-                alert("Enter your private code to see your earnings and goal.");
-                return;
-            }
-
-            fetch("/earnings_history", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_code: userCode })
-            }).then(response => response.json()).then(data => {
-                document.getElementById("earnings-history").innerHTML = data.map(row => 
-                    `<tr><td>${row[0]}</td><td>$${parseFloat(row[1]).toFixed(2)}</td><td>${row[2]}</td></tr>`).join("");
+        document.addEventListener("DOMContentLoaded", function () {
+            // Tab Switching
+            document.querySelectorAll(".tab-button").forEach(button => {
+                button.addEventListener("click", function () {
+                    document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
+                    document.querySelectorAll(".tab-button").forEach(btn => btn.classList.remove("active"));
+                    document.getElementById(this.dataset.tab).classList.add("active");
+                    this.classList.add("active");
+                });
             });
 
-            fetch("/goal_progress", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_code: userCode })
-            }).then(response => response.json()).then(data => {
-                document.getElementById("total-earnings").innerText = "$" + data.total_earnings.toFixed(2);
-                document.getElementById("goal-display").innerText = "$" + data.goal_amount.toFixed(2);
-                document.getElementById("progress-percent").innerText = data.progress.toFixed(1) + "%";
+            // Timer Logic
+            let startTime, interval;
+            document.getElementById("start-btn").addEventListener("click", () => {
+                startTime = Date.now();
+                interval = setInterval(() => {
+                    document.getElementById("timer").innerText = ((Date.now() - startTime) / 1000).toFixed(2) + "s";
+                }, 10);
             });
-        }
 
-        function logEarnings() {
-            fetch("/log_earnings", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: document.getElementById("earnings-name").value.trim(),
-                    amount: document.getElementById("earnings-amount").value.trim(),
-                    user_code: document.getElementById("user-code-log").value.trim()
+            document.getElementById("stop-btn").addEventListener("click", () => {
+                clearInterval(interval);
+            });
+
+            // Earnings & Goal Fetching
+            document.getElementById("show-info-btn").addEventListener("click", () => {
+                let userCode = document.getElementById("user-code-view").value.trim();
+                if (!userCode) return alert("Enter your private code.");
+
+                fetch("/earnings_history", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user_code: userCode })
                 })
-            }).then(response => response.json()).then(() => {
-                alert("Earnings logged successfully!");
-            });
-        }
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("earnings-history").innerHTML = data.map(row =>
+                        `<tr><td>${row[0]}</td><td>$${parseFloat(row[1]).toFixed(2)}</td><td>${row[2]}</td></tr>`).join("");
+                });
 
-        function setGoal() {
-            fetch("/update_goal", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    new_goal: document.getElementById("new-goal-amount").value.trim(),
-                    user_code: document.getElementById("goal-update-user-code").value.trim()
+                fetch("/goal_progress", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user_code: userCode })
                 })
-            }).then(response => response.json()).then(() => {
-                alert("Goal updated successfully!");
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("total-earnings").innerText = "$" + data.total_earnings.toFixed(2);
+                    document.getElementById("goal-display").innerText = "$" + data.goal_amount.toFixed(2);
+                    document.getElementById("progress-percent").innerText = data.progress.toFixed(1) + "%";
+                });
             });
-        }
+
+            // Log Earnings
+            document.getElementById("log-earnings-btn").addEventListener("click", () => {
+                fetch("/log_earnings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: document.getElementById("earnings-name").value.trim(),
+                        amount: document.getElementById("earnings-amount").value.trim(),
+                        user_code: document.getElementById("user-code-log").value.trim()
+                    })
+                }).then(() => alert("Earnings logged successfully!"));
+            });
+
+            // Set Goal
+            document.getElementById("set-goal-btn").addEventListener("click", () => {
+                fetch("/set_goal", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        goal_amount: document.getElementById("new-goal-amount").value.trim(),
+                        user_code: document.getElementById("goal-update-user-code").value.trim()
+                    })
+                }).then(() => alert("Goal updated successfully!"));
+            });
+        });
     </script>
 
 </body>
 </html>
-
