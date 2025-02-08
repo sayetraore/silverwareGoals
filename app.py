@@ -2,15 +2,15 @@ from flask import Flask, request, jsonify, render_template
 import sqlite3
 from datetime import datetime
 from cryptography.fernet import Fernet
-
 import os
+
 app = Flask(__name__, template_folder="templates")
 
 # Generates a key ONCE and store it securely (Do not regenerate each time)
 # key = Fernet.generate_key()
 # print(key)  # Copy and replace 'YOUR_SECRET_KEY_HERE'
 
-SECRET_KEY = b'3LmEiqWtxYPRmyB5m_NUcwrDN61jA5D9HxgkfJyvFiA='  #generated key
+SECRET_KEY = b'3LmEiqWtxYPRmyB5m_NUcwrDN61jA5D9HxgkfJyvFiA='  # generated key
 cipher_suite = Fernet(SECRET_KEY)
 
 # Initialize the database
@@ -74,7 +74,10 @@ def leaderboard():
     results = cursor.fetchall()
     conn.close()
 
-    ranked_results = [{"rank": i+1, "name": row[0], "time": row[1]} for i, row in enumerate(results)]
+    ranked_results = [
+        {"rank": i + 1, "name": row[0], "time": row[1]} 
+        for i, row in enumerate(results)
+    ]
     return jsonify(ranked_results)
 
 @app.route("/log_earnings", methods=["POST"])
@@ -92,7 +95,7 @@ def log_earnings():
 
     conn = sqlite3.connect("times.db")
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO earnings (name, amount, user_code) VALUES (?, ?, ?)", 
+    cursor.execute("INSERT INTO earnings (name, amount, user_code) VALUES (?, ?, ?)",
                    (name, encrypted_amount, encrypted_code))
     conn.commit()
     conn.close()
@@ -120,7 +123,8 @@ def earnings_history():
                 decrypted_amount = cipher_suite.decrypt(encrypted_amount).decode()  # Decrypt earnings
                 decrypted_results.append((name, decrypted_amount, date))
         except:
-            continue  # If decryption fails, ignore this row
+            # If decryption fails, ignore this row
+            continue
 
     return jsonify(decrypted_results)
 
@@ -134,7 +138,7 @@ def set_goal():
 
     conn = sqlite3.connect("times.db")
     cursor = conn.cursor()
-
+    # Replace any existing goal with the new one
     cursor.execute("DELETE FROM goals")
     cursor.execute("INSERT INTO goals (goal_amount) VALUES (?)", (goal_amount,))
     conn.commit()
@@ -156,7 +160,6 @@ def goal_progress():
     total_earnings = 0
     for row in results:
         name, encrypted_amount, encrypted_code = row
-
         try:
             decrypted_code = cipher_suite.decrypt(encrypted_code).decode()
             if decrypted_code == data.get("user_code"):  # Only show if code matches
@@ -174,8 +177,11 @@ def goal_progress():
 
     progress = (total_earnings / goal_amount) * 100 if goal_amount > 0 else 0
 
-    return jsonify({"total_earnings": total_earnings, "goal_amount": goal_amount, "progress": progress})
-
+    return jsonify({
+        "total_earnings": total_earnings,
+        "goal_amount": goal_amount,
+        "progress": progress
+    })
 
 @app.route("/earnings_trends", methods=["POST"])
 def earnings_trends():
@@ -193,12 +199,10 @@ def earnings_trends():
 
     for row in results:
         date, encrypted_amount, encrypted_code = row
-
         try:
             decrypted_code = cipher_suite.decrypt(encrypted_code).decode()
             if decrypted_code == data.get("user_code"):
                 amount = float(cipher_suite.decrypt(encrypted_amount).decode())
-
                 # Accumulate earnings for weekly and monthly charts
                 weekly_data[date] = weekly_data.get(date, 0) + amount
                 monthly_data[date] = monthly_data.get(date, 0) + amount
@@ -209,8 +213,13 @@ def earnings_trends():
     weekly_earnings = sorted(weekly_data.items())
     monthly_earnings = sorted(monthly_data.items())
 
-    return jsonify({"weekly": weekly_earnings, "monthly": monthly_earnings})
+    return jsonify({
+        "weekly": weekly_earnings,
+        "monthly": monthly_earnings
+    })
 
-
+# ---------------------- IMPORTANT CHANGE BELOW -----------------------
+# Bind to 0.0.0.0 and a port set by Render's environment variable
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
