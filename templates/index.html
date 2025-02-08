@@ -14,7 +14,7 @@
         th, td { padding: 10px; border: 2px solid #ff69b4; }
         th { background: #ff69b4; color: white; }
 
-        /* Tab styless */
+        /* Tab styles */
         .tab-container { margin: 20px 0; }
         .tab-button {
             padding: 15px;
@@ -36,6 +36,7 @@
     <div class="tab-container">
         <button class="tab-button active" onclick="switchTab('contest')">🥄 Silverware Contest</button>
         <button class="tab-button" onclick="switchTab('earnings')">💰 Earnings & Goals</button>
+        <button class="tab-button" onclick="switchTab('info')">ℹ️ Disclaimers & Info</button>
     </div>
 
     <!-- 🥄 Silverware Rolling Contest -->
@@ -81,6 +82,23 @@
         <button onclick="setGoal()">Update Goal</button>
     </div>
 
+    <!-- ℹ️ Disclaimers & Info -->
+    <div id="info" class="tab-content">
+        <h1>Disclaimers & Info</h1>
+        <p>This web app was designed by <b>Saye Traore</b> for my co-workers.</p>
+        <p>Your earnings and private data are <b>fully encrypted</b> and cannot be seen by me or anyone else.</p>
+        <p>The <b>private code you use is securely encrypted</b> using <b>AES-256 encryption</b>, meaning:</p>
+        <ul>
+            <li>Your code is converted into an unreadable format before being stored.</li>
+            <li>Even if someone accessed the database, they <b>could not decrypt your code</b> without the secret key.</li>
+            <li>The encryption key is <b>not stored in the database</b>, making it impossible for anyone, including the admin, to see your private data.</li>
+        </ul>
+        <p>Originally designed for my co-workers, but open for anyone who finds it useful.</p>
+        <p>🔗 <b>View the source code and security implementation on GitHub:</b>  
+        <a href="https://github.com/sayetraore/silverwareGoals.git" target="_blank">GitHub Repository</a></p>
+        <p>📧 For inquiries or issues, email me at <b>sayetraore40@gmail.com</b></p>
+    </div>
+
     <script>
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -120,45 +138,6 @@
                 document.getElementById("total-earnings").innerText = "$" + data.total_earnings.toFixed(2);
                 document.getElementById("goal-display").innerText = "$" + data.goal_amount.toFixed(2);
                 document.getElementById("progress-percent").innerText = data.progress.toFixed(1) + "%";
-            });
-        }
-
-        function logEarnings() {
-            let name = document.getElementById("earnings-name").value.trim();
-            let amount = document.getElementById("earnings-amount").value.trim();
-            let userCode = document.getElementById("user-code-log").value.trim();
-
-            if (!name || isNaN(amount) || amount <= 0 || !userCode) {
-                alert("Enter a valid name, earnings amount, and private code.");
-                return;
-            }
-
-            fetch("/log_earnings", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, amount: parseFloat(amount), user_code: userCode })
-            }).then(response => response.json()).then(data => {
-                alert(data.message);
-                loadEarningsAndGoal();
-            });
-        }
-
-        function setGoal() {
-            let goalAmount = document.getElementById("new-goal-amount").value.trim();
-            let userCode = document.getElementById("goal-update-user-code").value.trim();
-
-            if (!goalAmount || isNaN(goalAmount) || goalAmount <= 0 || !userCode) {
-                alert("Enter a valid goal amount and private code.");
-                return;
-            }
-
-            fetch("/set_goal", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ goal_amount: parseFloat(goalAmount), user_code: userCode })
-            }).then(response => response.json()).then(data => {
-                alert(data.message);
-                loadEarningsAndGoal();
             });
         }
 
