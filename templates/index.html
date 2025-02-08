@@ -14,7 +14,15 @@
         th, td { padding: 10px; border: 2px solid #ff69b4; }
         th { background: #ff69b4; color: white; }
         .tab-container { margin: 20px 0; }
-        .tab-button { padding: 15px; font-size: 16px; cursor: pointer; border: none; background-color: #ff69b4; color: white; margin: 5px; }
+        .tab-button {
+            padding: 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #ff69b4;
+            color: white;
+            margin: 5px;
+        }
         .tab-button.active { background-color: #ff1493; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -22,18 +30,20 @@
 </head>
 <body>
 
+    <!-- Tab Buttons -->
     <div class="tab-container">
         <button class="tab-button active" onclick="switchTab('contest')">🥄 Silverware Contest</button>
         <button class="tab-button" onclick="switchTab('earnings')">💰 Earnings & Goals</button>
         <button class="tab-button" onclick="switchTab('info')">ℹ️ Disclaimers & Info</button>
     </div>
 
+    <!-- 🥄 Silverware Rolling Contest -->
     <div id="contest" class="tab-content active">
         <h1>Silverware Rolling Contest</h1>
         <div id="timer">0.00s</div>
         <input type="text" id="name" placeholder="Enter your name">
-        <button id="startBtn">Start</button>
-        <button id="stopBtn">Stop</button>
+        <button onclick="startTimer()">Start</button>
+        <button onclick="stopTimer()">Stop</button>
 
         <h2>Leaderboard</h2>
         <table>
@@ -42,10 +52,11 @@
         </table>
     </div>
 
+    <!-- 💰 Earnings & Goal Tracker -->
     <div id="earnings" class="tab-content">
         <h2>Enter Your Code to View Earnings & Goal</h2>
         <input type="password" id="user-code-view" placeholder="Enter Your Private Code">
-        <button id="showInfoBtn">Show My Info</button>
+        <button onclick="loadEarningsAndGoal()">Show My Info</button>
 
         <h3>Total Earnings: <span id="total-earnings">Hidden</span></h3>
         <h3>Goal: <span id="goal-display">Hidden</span></h3>
@@ -61,14 +72,15 @@
         <input type="text" id="earnings-name" placeholder="Your Name">
         <input type="number" id="earnings-amount" placeholder="Earnings ($)">
         <input type="password" id="user-code-log" placeholder="Enter Your Private Code">
-        <button id="logEarningsBtn">Log Earnings</button>
+        <button onclick="logEarnings()">Log Earnings</button>
 
         <h2>Update Your Goal</h2>
         <input type="number" id="new-goal-amount" placeholder="Set New Goal ($)">
         <input type="password" id="goal-update-user-code" placeholder="Enter Your Private Code">
-        <button id="updateGoalBtn">Update Goal</button>
+        <button onclick="setGoal()">Update Goal</button>
     </div>
 
+    <!-- ℹ️ Disclaimers & Info -->
     <div id="info" class="tab-content">
         <h1>Disclaimers & Info</h1>
         <p>This web app was designed by <b>Saye Traore</b> for my co-workers.</p>
@@ -79,52 +91,55 @@
             <li>Even if someone accessed the database, they <b>could not decrypt your code</b> without the secret key.</li>
             <li>The encryption key is <b>not stored in the database</b>, making it impossible for anyone, including the admin, to see your private data.</li>
         </ul>
+        <p>Originally designed for my co-workers, but open for anyone who finds it useful.</p>
         <p>🔗 <b>View the source code and security implementation on GitHub:</b>  
         <a href="https://github.com/sayetraore/silverwareGoals.git" target="_blank">GitHub Repository</a></p>
+        <p>📧 For inquiries or issues, email me at <b>sayetraore40@gmail.com</b></p>
     </div>
 
     <script>
-        let timer, startTime;
+        let timer;
+        let startTime;
 
-        document.getElementById("startBtn").addEventListener("click", function () {
-            startTime = Date.now();
+        function startTimer() {
+            startTime = Date.now(); // Start the timer
             timer = setInterval(() => {
-                document.getElementById("timer").innerText = ((Date.now() - startTime) / 1000).toFixed(2) + "s";
+                const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+                document.getElementById("timer").innerText = elapsedTime + "s";
             }, 100);
-        });
-
-        document.getElementById("stopBtn").addEventListener("click", function () {
-            clearInterval(timer);
-            document.getElementById("timer").innerText += " (Stopped)";
-        });
-
-        document.getElementById("showInfoBtn").addEventListener("click", function () {
-            fetch("/earnings_history").then(response => response.json()).then(data => {
-                document.getElementById("earnings-history").innerHTML = data.map(row => 
-                    `<tr><td>${row[0]}</td><td>$${parseFloat(row[1]).toFixed(2)}</td><td>${row[2]}</td></tr>`).join("");
-            });
-        });
-
-        document.getElementById("logEarningsBtn").addEventListener("click", function () {
-            fetch("/log_earnings").then(response => response.json()).then(data => {
-                alert("Earnings logged successfully!");
-            });
-        });
-
-        document.getElementById("updateGoalBtn").addEventListener("click", function () {
-            fetch("/update_goal").then(response => response.json()).then(data => {
-                alert("Goal updated successfully!");
-            });
-        });
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(tabName).classList.add('active');
-            document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
         }
+
+        function stopTimer() {
+            clearInterval(timer); // Stop the timer
+            const finalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+            document.getElementById("timer").innerText = finalTime + "s (Stopped)";
+
+            // Submit time to backend
+            const playerName = document.getElementById("name").value.trim();
+            if (playerName === "") {
+                alert("Enter your name before stopping the timer!");
+                return;
+            }
+
+            fetch("/submit_time", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: playerName, time_taken: finalTime })
+            }).then(response => response.json()).then(data => {
+                alert("Time submitted!");
+                loadLeaderboard();
+            });
+        }
+
+        function loadLeaderboard() {
+            fetch("/leaderboard").then(response => response.json()).then(data => {
+                document.getElementById("leaderboard").innerHTML = data.map(row => 
+                    `<tr><td>${row.rank}</td><td>${row.name}</td><td>${row.time}s</td></tr>`).join("");
+            });
+        }
+
+        loadLeaderboard();
     </script>
 
 </body>
 </html>
-
