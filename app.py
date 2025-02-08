@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 from cryptography.fernet import Fernet
 
-app = Flask(__name__, template_folder="templatez")
+app = Flask(__name__, template_folder="templates")
 
 # Generates a key ONCE and store it securely (Do not regenerate each time)
 # key = Fernet.generate_key()
