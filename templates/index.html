@@ -1,4 +1,4 @@
-<!DOC<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -84,10 +84,11 @@
         <p>📧 For inquiries or issues, email me at <b>sayetraore40@gmail.com</b></p>
     </div>
     
-
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            // Tab Switching
+            //=============================
+            // TAB SWITCHING
+            //=============================
             document.querySelectorAll(".tab-button").forEach(button => {
                 button.addEventListener("click", function () {
                     document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
@@ -97,24 +98,88 @@
                 });
             });
 
-            // Timer Logic
+            //=============================
+            // TIMER LOGIC
+            //=============================
             let startTime, interval;
             document.getElementById("start-btn").addEventListener("click", () => {
                 startTime = Date.now();
                 interval = setInterval(() => {
-                    document.getElementById("timer").innerText = ((Date.now() - startTime) / 1000).toFixed(2) + "s";
+                    document.getElementById("timer").innerText =
+                        ((Date.now() - startTime) / 1000).toFixed(2) + "s";
                 }, 10);
             });
 
             document.getElementById("stop-btn").addEventListener("click", () => {
                 clearInterval(interval);
+                submitTime();
             });
 
-            // Earnings & Goal Fetching
+            //=============================
+            // SUBMIT TIME TO SERVER
+            //=============================
+            function submitTime() {
+                const name = document.getElementById("name").value.trim();
+                if (!name) {
+                    alert("Please enter your name before stopping the timer!");
+                    return;
+                }
+                // Convert timer text (e.g., '5.23s') to a float
+                const timeValue = parseFloat(
+                    document.getElementById("timer").innerText.replace("s", "")
+                );
+
+                fetch("/submit_time", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: name,
+                        time_taken: timeValue
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Time submitted:", data);
+                    // After submitting, refresh the leaderboard
+                    getLeaderboard();
+                })
+                .catch(err => console.error("Error submitting time:", err));
+            }
+
+            //=============================
+            // GET & DISPLAY LEADERBOARD
+            //=============================
+            function getLeaderboard() {
+                fetch("/leaderboard")
+                    .then(response => response.json())
+                    .then(data => {
+                        const tbody = document.getElementById("leaderboard");
+                        tbody.innerHTML = ""; // Clear existing rows
+
+                        data.forEach(item => {
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td>${item.rank}</td>
+                                    <td>${item.name}</td>
+                                    <td>${parseFloat(item.time).toFixed(2)}</td>
+                                </tr>
+                            `;
+                        });
+                    })
+                    .catch(error => console.error("Error fetching leaderboard:", error));
+            }
+
+            // Fetch leaderboard initially on page load
+            getLeaderboard();
+
+            //=============================
+            // EARNINGS & GOAL FETCHING
+            //=============================
             document.getElementById("show-info-btn").addEventListener("click", () => {
                 let userCode = document.getElementById("user-code-view").value.trim();
                 if (!userCode) return alert("Enter your private code.");
 
+                // 1) Fetch Earnings History
                 fetch("/earnings_history", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -123,9 +188,11 @@
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById("earnings-history").innerHTML = data.map(row =>
-                        `<tr><td>${row[0]}</td><td>$${parseFloat(row[1]).toFixed(2)}</td><td>${row[2]}</td></tr>`).join("");
+                        `<tr><td>${row[0]}</td><td>$${parseFloat(row[1]).toFixed(2)}</td><td>${row[2]}</td></tr>`
+                    ).join("");
                 });
 
+                // 2) Fetch Goal & Progress
                 fetch("/goal_progress", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -139,7 +206,9 @@
                 });
             });
 
-            // Log Earnings
+            //=============================
+            // LOG EARNINGS
+            //=============================
             document.getElementById("log-earnings-btn").addEventListener("click", () => {
                 fetch("/log_earnings", {
                     method: "POST",
@@ -149,10 +218,14 @@
                         amount: document.getElementById("earnings-amount").value.trim(),
                         user_code: document.getElementById("user-code-log").value.trim()
                     })
-                }).then(() => alert("Earnings logged successfully!"));
+                })
+                .then(() => alert("Earnings logged successfully!"))
+                .catch(err => console.error("Error logging earnings:", err));
             });
 
-            // Set Goal
+            //=============================
+            // SET / UPDATE GOAL
+            //=============================
             document.getElementById("set-goal-btn").addEventListener("click", () => {
                 fetch("/set_goal", {
                     method: "POST",
@@ -161,7 +234,9 @@
                         goal_amount: document.getElementById("new-goal-amount").value.trim(),
                         user_code: document.getElementById("goal-update-user-code").value.trim()
                     })
-                }).then(() => alert("Goal updated successfully!"));
+                })
+                .then(() => alert("Goal updated successfully!"))
+                .catch(err => console.error("Error updating goal:", err));
             });
         });
     </script>
