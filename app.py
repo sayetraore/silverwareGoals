@@ -218,7 +218,6 @@ def earnings_trends():
         "monthly": monthly_earnings
     })
 
-# ---------------------- IMPORTANT CHANGE BELOW -----------------------
 # Bind to 0.0.0.0 and a port set by Render's environment variable
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
