@@ -1,4 +1,4 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -32,8 +32,8 @@
         <h1>Silverware Rolling Contest</h1>
         <div id="timer">0.00s</div>
         <input type="text" id="name" placeholder="Enter your name">
-        <button onclick="startTimer()">Start</button>
-        <button onclick="stopTimer()">Stop</button>
+        <button id="startBtn">Start</button>
+        <button id="stopBtn">Stop</button>
 
         <h2>Leaderboard</h2>
         <table>
@@ -45,7 +45,7 @@
     <div id="earnings" class="tab-content">
         <h2>Enter Your Code to View Earnings & Goal</h2>
         <input type="password" id="user-code-view" placeholder="Enter Your Private Code">
-        <button onclick="loadEarningsAndGoal()">Show My Info</button>
+        <button id="showInfoBtn">Show My Info</button>
 
         <h3>Total Earnings: <span id="total-earnings">Hidden</span></h3>
         <h3>Goal: <span id="goal-display">Hidden</span></h3>
@@ -61,12 +61,12 @@
         <input type="text" id="earnings-name" placeholder="Your Name">
         <input type="number" id="earnings-amount" placeholder="Earnings ($)">
         <input type="password" id="user-code-log" placeholder="Enter Your Private Code">
-        <button onclick="logEarnings()">Log Earnings</button>
+        <button id="logEarningsBtn">Log Earnings</button>
 
         <h2>Update Your Goal</h2>
         <input type="number" id="new-goal-amount" placeholder="Set New Goal ($)">
         <input type="password" id="goal-update-user-code" placeholder="Enter Your Private Code">
-        <button onclick="setGoal()">Update Goal</button>
+        <button id="updateGoalBtn">Update Goal</button>
     </div>
 
     <div id="info" class="tab-content">
@@ -84,60 +84,47 @@
     </div>
 
     <script>
-        function loadEarningsAndGoal() {
-            let userCode = document.getElementById("user-code-view").value.trim();
-            if (!userCode) {
-                alert("Enter your private code to see your earnings and goal.");
-                return;
-            }
+        let timer, startTime;
 
-            fetch("/earnings_history", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_code: userCode })
-            }).then(response => response.json()).then(data => {
+        document.getElementById("startBtn").addEventListener("click", function () {
+            startTime = Date.now();
+            timer = setInterval(() => {
+                document.getElementById("timer").innerText = ((Date.now() - startTime) / 1000).toFixed(2) + "s";
+            }, 100);
+        });
+
+        document.getElementById("stopBtn").addEventListener("click", function () {
+            clearInterval(timer);
+            document.getElementById("timer").innerText += " (Stopped)";
+        });
+
+        document.getElementById("showInfoBtn").addEventListener("click", function () {
+            fetch("/earnings_history").then(response => response.json()).then(data => {
                 document.getElementById("earnings-history").innerHTML = data.map(row => 
                     `<tr><td>${row[0]}</td><td>$${parseFloat(row[1]).toFixed(2)}</td><td>${row[2]}</td></tr>`).join("");
             });
-        }
+        });
 
-        function logEarnings() {
-            let name = document.getElementById("earnings-name").value.trim();
-            let amount = document.getElementById("earnings-amount").value.trim();
-            let userCode = document.getElementById("user-code-log").value.trim();
-
-            if (!name || !amount || !userCode) {
-                alert("Fill in all fields before logging earnings.");
-                return;
-            }
-
-            fetch("/log_earnings", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: name, amount: amount, user_code: userCode })
-            }).then(response => response.json()).then(data => {
+        document.getElementById("logEarningsBtn").addEventListener("click", function () {
+            fetch("/log_earnings").then(response => response.json()).then(data => {
                 alert("Earnings logged successfully!");
             });
-        }
+        });
 
-        function setGoal() {
-            let newGoal = document.getElementById("new-goal-amount").value.trim();
-            let userCode = document.getElementById("goal-update-user-code").value.trim();
-
-            if (!newGoal || !userCode) {
-                alert("Enter a new goal amount and your private code.");
-                return;
-            }
-
-            fetch("/update_goal", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ new_goal: newGoal, user_code: userCode })
-            }).then(response => response.json()).then(data => {
+        document.getElementById("updateGoalBtn").addEventListener("click", function () {
+            fetch("/update_goal").then(response => response.json()).then(data => {
                 alert("Goal updated successfully!");
             });
+        });
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
         }
     </script>
 
 </body>
 </html>
+
