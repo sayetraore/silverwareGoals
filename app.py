@@ -6,9 +6,8 @@ import os
 
 app = Flask(__name__, template_folder="templates")
 
-# Generates a key ONCE and store it securely (Do not regenerate each time)
+# Generates a key 
 # key = Fernet.generate_key()
-# print(key)  # Copy and replace 'YOUR_SECRET_KEY_HERE'
 
 SECRET_KEY = b'3LmEiqWtxYPRmyB5m_NUcwrDN61jA5D9HxgkfJyvFiA='  # generated key
 cipher_suite = Fernet(SECRET_KEY)
